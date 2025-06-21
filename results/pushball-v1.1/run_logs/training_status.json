@@ -1,0 +1,29 @@
+{
+    "PushBall": {
+        "checkpoints": [
+            {
+                "steps": 69200,
+                "file_path": "results/pushball-v1.1/PushBall/PushBall-69200.onnx",
+                "reward": -0.0017192745581269264,
+                "creation_time": 1750175028.0856209,
+                "auxillary_file_paths": [
+                    "results/pushball-v1.1/PushBall/PushBall-69200.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 69200,
+            "file_path": "results/pushball-v1.1/PushBall.onnx",
+            "reward": -0.0017192745581269264,
+            "creation_time": 1750175028.0856209,
+            "auxillary_file_paths": [
+                "results/pushball-v1.1/PushBall/PushBall-69200.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "1.11.0"
+    }
+}
