@@ -6,11 +6,15 @@ public class BallReset : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("ResetZone"))
+        if (other.CompareTag("TargetZone"))
         {
-            Debug.Log("Ball touched ResetZone. Ending episode.");
-            agent.AddReward(-0.5f);
-            agent.EndEpisode();
+            Debug.Log("Ball entered TargetZone");
+            agent.NotifyBallEnteredGoal();
+        }
+        else if (other.CompareTag("ResetZone"))
+        {
+            Debug.Log("Ball touched ResetZone");
+            agent.NotifyBallFailed();
         }
     }
 }
