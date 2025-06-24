@@ -16,6 +16,8 @@ public class PushBallAgent : Agent
 
     private float previousBallToTargetDist;
     private bool ballInTargetZone = false;
+    private BoxCollider spawnArea;
+    private BoxCornerDetector cornerDetector;
 
     public float torqueMultiplier = 1f;
     public float forceMultiplier = 10f;
@@ -24,6 +26,19 @@ public class PushBallAgent : Agent
     {
         agentRb = GetComponent<Rigidbody>();
         ballRb = ball.GetComponent<Rigidbody>();
+        cornerDetector = ball.GetComponent<BoxCornerDetector>();
+        
+        var parent = transform.parent;
+        if (parent)
+        {
+            var areaTransform = parent.Find("SpawnArea");
+            if (areaTransform) spawnArea = areaTransform.GetComponent<BoxCollider>();
+        }
+
+        if (!spawnArea)
+        {
+            Debug.LogError("SpawnArea not found as sibling in environment: " + gameObject.name);
+        }
 
         startAgentPos = transform.position;
         startBallPos = ball.position;
@@ -40,10 +55,12 @@ public class PushBallAgent : Agent
         ballRb.linearVelocity = Vector3.zero;
         ballRb.angularVelocity = Vector3.zero;
 
-        transform.position = startAgentPos;
-        ball.position = startBallPos;
+        transform.position = RandomSpawnPoint();
+        ball.position = RandomSpawnPoint();
 
         previousBallToTargetDist = Vector3.Distance(ball.position, target.position);
+        SuccessTracker.totalEpisodes++;
+        cornerDetector.wallsTouching = 0;
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -63,24 +80,68 @@ public class PushBallAgent : Agent
 
     public override void OnActionReceived(ActionBuffers actions)
     {
-        float currentBallToTargetDist = Vector3.Distance(ball.position, target.position);
-        float delta = previousBallToTargetDist - currentBallToTargetDist;
+        var currentBallToTargetDist = Vector3.Distance(ball.position, target.position);
+        var delta = previousBallToTargetDist - currentBallToTargetDist;
         previousBallToTargetDist = currentBallToTargetDist;
 
         if (delta > 0f)
             AddReward(0.05f * delta); // reward for progress
 
-        Vector3 ballDir = (target.position - ball.position).normalized;
-        float alignment = Vector3.Dot(ballRb.linearVelocity.normalized, ballDir);
+        // Vector3 ballDir = (target.position - ball.position).normalized;
+        // float alignment = Vector3.Dot(ballRb.linearVelocity.normalized, ballDir);
+        //
+        // if (alignment > 0.8f && ballRb.linearVelocity.magnitude > 0.2f)
+        //     AddReward(0.01f); // reward for good direction
+        
+        var agentToBall = (ball.position - transform.position).normalized;
+        var ballToTarget = (target.position - ball.position).normalized;
 
-        if (alignment > 0.8f && ballRb.linearVelocity.magnitude > 0.2f)
-            AddReward(0.01f); // reward for good direction
+        // Is the agent moving *toward* the ball in the right direction to push it to the goal?
+        var agentApproach = Vector3.Dot(agentRb.linearVelocity.normalized, agentToBall);
+        var pushAlignment = Vector3.Dot(agentToBall, ballToTarget);
+        
+        if (Physics.Raycast(transform.position, agentRb.linearVelocity.normalized, out RaycastHit hit, 0.6f))
+        {
+            if (hit.collider.CompareTag("Wall"))
+            {
+                Debug.Log(hit.collider.name);
+                AddReward(-0.02f); // nudging into wall? stop.
+            }
+        }
+
+        // Only reward if approach AND alignment are both good
+        if (agentApproach > 0.8f && pushAlignment > 0.6f)
+        {
+            AddReward(0.1f);
+        }
 
         if (agentRb.angularVelocity.magnitude > 3f)
             AddReward(-0.1f); // penalize spinning
+        
+        // Penalty for making box stuck in the corner
+        if (cornerDetector)
+        {
+            if (cornerDetector.wallsTouching >= 2)
+            {
+                Debug.Log("Box stucked in the corner");
+                NotifyBallFailed(-3);
+            }
+        }
+        
+        // Check if the agent is looking at the wall
+        if (ballRb.linearVelocity.magnitude > 0.01f && ballRb.linearVelocity.magnitude < 0.1f)
+        {
+            if (Physics.Raycast(ball.position, ballRb.linearVelocity.normalized, out var wallHit, 0.3f) &&
+                wallHit.collider.CompareTag("Wall"))
+            {
+                Debug.Log("Hits the wall - stuck");
+                AddReward(-0.01f);
+            }
+        }
+        
 
-        Vector3 move = new Vector3(actions.ContinuousActions[0], 0, actions.ContinuousActions[1]);
-        float rotate = actions.ContinuousActions[2];
+        var move = new Vector3(actions.ContinuousActions[0], 0, actions.ContinuousActions[1]);
+        var rotate = actions.ContinuousActions[2];
 
         agentRb.AddForce(move * forceMultiplier);
 
@@ -94,25 +155,26 @@ public class PushBallAgent : Agent
         {
             AddReward(0.3f);
 
-            Vector3 ballToTarget = (target.position - ball.position).normalized;
-            Vector3 ballVelocity = ballRb.linearVelocity.normalized;
-            float alignment = Vector3.Dot(ballVelocity, ballToTarget);
+            var ballToTarget = (target.position - ball.position).normalized;
+            var ballVelocity = ballRb.linearVelocity.normalized;
+            var alignment = Vector3.Dot(ballVelocity, ballToTarget);
 
-            if (alignment > 0.7f)
-                AddReward(0.5f * alignment);
+            if (alignment > 0.7f) AddReward(0.5f * alignment);
         }
     }
 
     public void NotifyBallEnteredGoal()
     {
         ballInTargetZone = true;
+        SuccessTracker.successfulEpisodes++;
         AddReward(2f);
         EndEpisode();
+        Debug.Log($"Success Rate: {(float)SuccessTracker.successfulEpisodes / SuccessTracker.totalEpisodes:P}");
     }
 
-    public void NotifyBallFailed()
+    private void NotifyBallFailed(float penalty)
     {
-        AddReward(-3f);
+        AddReward(penalty);
         EndEpisode();
     }
 
@@ -120,11 +182,21 @@ public class PushBallAgent : Agent
     {
         if (!ballInTargetZone)
         {
-            float dist = Vector3.Distance(ball.position, target.position);
+            var dist = Vector3.Distance(ball.position, target.position);
             AddReward(-Mathf.Clamp01(dist / 1.5f));
             AddReward(-1f);
         }
         EndEpisode();
+    }
+    
+    Vector3 RandomSpawnPoint()
+    {
+        var bounds = spawnArea.bounds;
+        var x = Random.Range(bounds.min.x, bounds.max.x);
+        var z = Random.Range(bounds.min.z, bounds.max.z);
+        var y = bounds.center.y + 0.1f;
+
+        return new Vector3(x, y, z);
     }
 
     public override void Heuristic(in ActionBuffers actionsOut)
