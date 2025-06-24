@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class BallReset : MonoBehaviour
+public class Box : MonoBehaviour
 {
     public PushBallAgent agent;
 
@@ -11,11 +11,5 @@ public class BallReset : MonoBehaviour
             Debug.Log("Ball entered TargetZone");
             agent.NotifyBallEnteredGoal();
         }
-        else if (other.CompareTag("ResetZone"))
-        {
-            Debug.Log("Ball touched ResetZone");
-            agent.NotifyBallFailed();
-        }
     }
 }
-

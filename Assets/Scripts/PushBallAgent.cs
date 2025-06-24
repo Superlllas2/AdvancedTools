@@ -7,19 +7,18 @@ public class PushBallAgent : Agent
 {
     public Transform ball;
     public Transform target;
+
     private Rigidbody agentRb;
     private Rigidbody ballRb;
+
     private Vector3 startAgentPos;
     private Vector3 startBallPos;
-    private float previousDistanceToBall;
+
     private float previousBallToTargetDist;
-    private bool episodeShouldEnd = false;
-    private float episodeEndTimer = 0f;
     private bool ballInTargetZone = false;
 
     public float torqueMultiplier = 1f;
     public float forceMultiplier = 10f;
-    
 
     public override void Initialize()
     {
@@ -28,37 +27,87 @@ public class PushBallAgent : Agent
 
         startAgentPos = transform.position;
         startBallPos = ball.position;
+
+        ballRb.WakeUp();
     }
-    
-    
-    private void FixedUpdate()
+
+    public override void OnEpisodeBegin()
     {
-        if (episodeShouldEnd)
+        ballInTargetZone = false;
+
+        agentRb.linearVelocity = Vector3.zero;
+        agentRb.angularVelocity = Vector3.zero;
+        ballRb.linearVelocity = Vector3.zero;
+        ballRb.angularVelocity = Vector3.zero;
+
+        transform.position = startAgentPos;
+        ball.position = startBallPos;
+
+        previousBallToTargetDist = Vector3.Distance(ball.position, target.position);
+    }
+
+    public override void CollectObservations(VectorSensor sensor)
+    {
+        Vector3 agentToBall = ball.position - transform.position;
+        sensor.AddObservation(agentToBall.normalized);
+        sensor.AddObservation(agentToBall.magnitude);
+
+        Vector3 ballToTarget = target.position - ball.position;
+        sensor.AddObservation(ballToTarget.normalized);
+
+        sensor.AddObservation(agentRb.linearVelocity);
+        sensor.AddObservation(agentRb.angularVelocity);
+
+        sensor.AddObservation(target.position - transform.position); // optional
+    }
+
+    public override void OnActionReceived(ActionBuffers actions)
+    {
+        float currentBallToTargetDist = Vector3.Distance(ball.position, target.position);
+        float delta = previousBallToTargetDist - currentBallToTargetDist;
+        previousBallToTargetDist = currentBallToTargetDist;
+
+        if (delta > 0f)
+            AddReward(0.05f * delta); // reward for progress
+
+        Vector3 ballDir = (target.position - ball.position).normalized;
+        float alignment = Vector3.Dot(ballRb.linearVelocity.normalized, ballDir);
+
+        if (alignment > 0.8f && ballRb.linearVelocity.magnitude > 0.2f)
+            AddReward(0.01f); // reward for good direction
+
+        if (agentRb.angularVelocity.magnitude > 3f)
+            AddReward(-0.1f); // penalize spinning
+
+        Vector3 move = new Vector3(actions.ContinuousActions[0], 0, actions.ContinuousActions[1]);
+        float rotate = actions.ContinuousActions[2];
+
+        agentRb.AddForce(move * forceMultiplier);
+
+        if (agentRb.angularVelocity.magnitude < 1f)
+            agentRb.AddTorque(Vector3.up * rotate * torqueMultiplier);
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Ball"))
         {
-            episodeEndTimer += Time.fixedDeltaTime;
-        
-            // Check if ball reached the zone in time
-            if (ballInTargetZone)
-            {
-                AddReward(2f); // delayed success
-                Debug.Log("Ball entered TargetZone");
-                episodeShouldEnd = false;
-                EndEpisode();
-            }
-            else if (episodeEndTimer > 1.0f) // wait max 1 second
-            {
-                AddReward(-1f); // fail
-                EndEpisode();
-            }
+            AddReward(0.3f);
+
+            Vector3 ballToTarget = (target.position - ball.position).normalized;
+            Vector3 ballVelocity = ballRb.linearVelocity.normalized;
+            float alignment = Vector3.Dot(ballVelocity, ballToTarget);
+
+            if (alignment > 0.7f)
+                AddReward(0.5f * alignment);
         }
     }
-    
+
     public void NotifyBallEnteredGoal()
     {
-        Debug.Log("Notification Entered Goal");
         ballInTargetZone = true;
-        episodeShouldEnd = true;
-        episodeEndTimer = 0f;
+        AddReward(2f);
+        EndEpisode();
     }
 
     public void NotifyBallFailed()
@@ -67,122 +116,22 @@ public class PushBallAgent : Agent
         EndEpisode();
     }
 
-    public override void OnEpisodeBegin()
+    public void EndManuallyWithPenalty()
     {
-        // Debug.Log("EPISODE START");
-        episodeShouldEnd = false;
-        episodeEndTimer = 0f;
-        ballInTargetZone = false;
-        agentRb.linearVelocity = Vector3.zero;
-        agentRb.angularVelocity = Vector3.zero;
-        ballRb.linearVelocity = Vector3.zero;
-        ballRb.angularVelocity = Vector3.zero;
-
-        previousDistanceToBall = Vector3.Distance(transform.position, ball.position);
-        previousBallToTargetDist = Vector3.Distance(ball.position, target.position);
-        
-        agentRb.MovePosition(startAgentPos);
-        ballRb.MovePosition(startBallPos);
-    }
-
-    public override void CollectObservations(VectorSensor sensor)
-    {
-        sensor.AddObservation((ball.position - transform.position).normalized); // direction to ball
-        sensor.AddObservation((target.position - ball.position).normalized); // target direction
-        sensor.AddObservation(agentRb.linearVelocity);
-        sensor.AddObservation(agentRb.angularVelocity);
-    }
-
-    public override void OnActionReceived(ActionBuffers actions)
-    {
-        // Dynamic reward for distance
-        var currentDistance = Vector3.Distance(transform.position, ball.position);
-        var distanceDelta = previousDistanceToBall - currentDistance;
-        previousDistanceToBall = currentDistance;
-        
-        // The reward for getting ball closer to the target
-        var currentDist = Vector3.Distance(ball.position, target.position);
-        var delta = previousBallToTargetDist - currentDist;
-        if (distanceDelta > 0f)
+        if (!ballInTargetZone)
         {
-            AddReward(distanceDelta * 0.05f); // reward for getting closer
+            float dist = Vector3.Distance(ball.position, target.position);
+            AddReward(-Mathf.Clamp01(dist / 1.5f));
+            AddReward(-1f);
         }
-        previousBallToTargetDist = currentDist;
-        
-        // Penalize spinning
-        var angularVelocityPenalty = Vector3.Magnitude(agentRb.angularVelocity);
-        AddReward(-0.005f * angularVelocityPenalty);
-        
-        // Facing the ball and/or facing the goal when pushing.
-        var toBall = (ball.position - transform.position).normalized;
-        var alignment = Vector3.Dot(transform.forward, toBall);
-        AddReward(0.01f * alignment);  // Positive if agent looks toward ball
-        
-        // Telling to move
-        var move = new Vector3(actions.ContinuousActions[0], 0, actions.ContinuousActions[1]);
-        var rotate = actions.ContinuousActions[2];
-
-        agentRb.AddForce(move * forceMultiplier);
-        
-        var maxAngularVelocity = 1f;
-        if (agentRb.angularVelocity.magnitude < maxAngularVelocity)
-        {
-            agentRb.AddTorque(Vector3.up * rotate * torqueMultiplier);
-        }
-        
-        // Punishment for being curious... :(
-        if (Vector3.Distance(transform.position, ball.position) > previousDistanceToBall + 0.1f)
-        {
-            AddReward(-0.01f); // discourage wandering
-        }
-        
-        // For staying close to the ball
-        var distanceToBall = Vector3.Distance(transform.position, ball.position);
-        AddReward(1f / (distanceToBall + 1f) * 0.001f);
-        
-        //Speed penalty
-        var speedPenalty = agentRb.linearVelocity.magnitude > 5f ? -0.05f : 0f;
-        AddReward(speedPenalty);
-
-        // Time penalty
-        AddReward(-0.001f);
-    }
-
-    private void OnCollisionEnter(Collision collision)
-    {
-        if (collision.gameObject.CompareTag("Ball"))
-        {
-            Debug.Log("Agent touched the ball");
-            var toTarget = (target.position - ball.position).normalized;
-            var ballVelocity = ballRb.linearVelocity.normalized;
-            var alignment = Vector3.Dot(toTarget, ballVelocity);
-            AddReward(0.5f * Mathf.Clamp01(alignment)); // only reward good pushes
-        }
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        // if (other.CompareTag("TargetZone") && other.attachedRigidbody == ballRb)
-        // {
-        //     Debug.Log("Ball hits the zone");
-        //     AddReward(2f);
-        //     EndEpisode();
-        // }
-
-        if (other.CompareTag("ResetZone"))
-        {
-            Debug.Log("The agent entered the reset zone");
-            episodeShouldEnd = true;
-            episodeEndTimer = 0f;
-            AddReward(-2f);
-        }
+        EndEpisode();
     }
 
     public override void Heuristic(in ActionBuffers actionsOut)
     {
-        var continuous = actionsOut.ContinuousActions;
-        continuous[0] = Input.GetAxis("Horizontal");
-        continuous[1] = Input.GetAxis("Vertical");
-        continuous[2] = Input.GetKey(KeyCode.Q) ? -1f : Input.GetKey(KeyCode.E) ? 1f : 0f;
+        var c = actionsOut.ContinuousActions;
+        c[0] = Input.GetAxis("Horizontal");
+        c[1] = Input.GetAxis("Vertical");
+        c[2] = Input.GetKey(KeyCode.Q) ? -1f : Input.GetKey(KeyCode.E) ? 1f : 0f;
     }
 }
