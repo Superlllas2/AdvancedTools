@@ -1,16 +1,39 @@
+using System.Collections;
 using UnityEngine;
 
 public class ColourChange : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public Material win;
+    public Material defMat;
+
+    private Renderer rend;
+
+    private void Awake()
     {
-        
+        rend = GetComponent<Renderer>();
+        defMat = rend.material;
+    }
+    
+    private void OnEnable()
+    {
+        Box.OnBoxReachedGoal += ChangeMaterialTemporary;
     }
 
-    // Update is called once per frame
-    void Update()
+    private void OnDisable()
     {
-        
+        Box.OnBoxReachedGoal -= ChangeMaterialTemporary;
+    }
+
+    private void ChangeMaterialTemporary()
+    {
+        StopAllCoroutines(); // In case it's already running
+        StartCoroutine(ChangeRoutine());
+    }
+
+    private IEnumerator ChangeRoutine()
+    {
+        rend.material = win;
+        yield return new WaitForSeconds(1f);
+        rend.material = defMat;
     }
 }
