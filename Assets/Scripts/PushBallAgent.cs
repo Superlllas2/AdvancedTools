@@ -84,8 +84,21 @@ public class PushBallAgent : Agent
         var delta = previousBallToTargetDist - currentBallToTargetDist;
         previousBallToTargetDist = currentBallToTargetDist;
 
-        if (delta > 0f)
-            AddReward(0.05f * delta); // reward for progress
+        if (delta > 0.05f)
+        {
+            // Reward only significant progress
+            AddReward(0.02f * delta);
+        }
+        else if (delta < -0.05f)
+        {
+            // Penalise when the box moves away from the goal
+            AddReward(-0.02f * -delta);
+        }
+        else
+        {
+            // Small penalty for lack of progress
+            AddReward(-0.001f);
+        }
 
         // Vector3 ballDir = (target.position - ball.position).normalized;
         // float alignment = Vector3.Dot(ballRb.linearVelocity.normalized, ballDir);
@@ -112,7 +125,8 @@ public class PushBallAgent : Agent
         // Only reward if approach AND alignment are both good
         if (agentApproach > 0.8f && pushAlignment > 0.6f)
         {
-            AddReward(0.1f);
+            // Smaller reward for proper alignment
+            AddReward(0.02f);
         }
 
         if (agentRb.angularVelocity.magnitude > 3f)
@@ -147,19 +161,23 @@ public class PushBallAgent : Agent
 
         if (agentRb.angularVelocity.magnitude < 1f)
             agentRb.AddTorque(Vector3.up * rotate * torqueMultiplier);
+
+        if (agentRb.velocity.magnitude < 0.1f)
+            AddReward(-0.001f);
     }
 
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("Ball"))
         {
-            AddReward(0.3f);
+            // Minimal reward for touching the box
+            AddReward(0.05f);
 
             var ballToTarget = (target.position - ball.position).normalized;
             var ballVelocity = ballRb.linearVelocity.normalized;
             var alignment = Vector3.Dot(ballVelocity, ballToTarget);
 
-            if (alignment > 0.7f) AddReward(0.5f * alignment);
+            if (alignment > 0.7f) AddReward(0.2f * alignment);
         }
     }
 
