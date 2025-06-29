@@ -9,6 +9,8 @@ TagManager:
   - TargetZone
   - Ball
   - Wall
+  - ObstacleSpawn
+  - Obstacle
   layers:
   - Default
   - TransparentFX

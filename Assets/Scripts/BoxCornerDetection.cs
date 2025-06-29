@@ -6,6 +6,7 @@ public class BoxCornerDetector : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
+        Debug.Log("Box collided with: " + collision.collider.name);
         if (collision.gameObject.CompareTag("Wall"))
         {
             wallsTouching++;

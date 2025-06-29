@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class Box : MonoBehaviour
 {
-    public PushBallAgent agent;
+    public PushBallAgentRayCast agent;
     public static event Action OnBoxReachedGoal;
 
     private void OnTriggerEnter(Collider other)
