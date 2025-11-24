@@ -48,7 +48,6 @@ public class PushBallAgentRayCast : Agent
 
     public override void OnEpisodeBegin()
     {
-        Debug.Log("[EP START]");
         ballInTargetZone = false;
 
         agentRb.linearVelocity = Vector3.zero;
@@ -59,9 +58,6 @@ public class PushBallAgentRayCast : Agent
         transform.position = RandomSpawnPoint();
         ball.position = RandomSpawnPoint();
 
-        // transform.position = startAgentPos;
-        // ball.position = startBallPos;
-
         previousBallToTargetDist = Vector3.Distance(ball.position, target.position);
         SuccessTracker.totalEpisodes++;
         cornerDetector.wallsTouching = 0;
@@ -69,20 +65,23 @@ public class PushBallAgentRayCast : Agent
 
     public override void CollectObservations(VectorSensor sensor)
     {
+        Debug.Log($"agentRb linear {agentRb.linearVelocity}");
+        Debug.Log($"agentRb angular {agentRb.angularVelocity}");
+        Debug.Log($"target is {(target == null ? "null" : "OK")}");
+        Debug.Log("Ball is null?: " + ball);
+        Vector3 agentToBall = ball.position - transform.position;
+        Debug.Log($"agentToBall {agentToBall}");
+        sensor.AddObservation(agentToBall.normalized);
+        sensor.AddObservation(agentToBall.magnitude);
+
+        Vector3 ballToTarget = target.position - ball.position;
+        Debug.Log($"ballToTarget {ballToTarget}");
+        sensor.AddObservation(ballToTarget.normalized);
+
         sensor.AddObservation(agentRb.linearVelocity);
         sensor.AddObservation(agentRb.angularVelocity);
-        
-        // Vector3 agentToBall = ball.position - transform.position;
-        // sensor.AddObservation(agentToBall.normalized);
-        // sensor.AddObservation(agentToBall.magnitude);
-        //
-        // Vector3 ballToTarget = target.position - ball.position;
-        // sensor.AddObservation(ballToTarget.normalized);
-        //
-        // sensor.AddObservation(agentRb.linearVelocity);
-        // sensor.AddObservation(agentRb.angularVelocity);
-        //
-        // sensor.AddObservation(target.position - transform.position); // optional
+
+        sensor.AddObservation(target.position - transform.position); // optional
     }
 
     public override void OnActionReceived(ActionBuffers actions)
@@ -91,21 +90,8 @@ public class PushBallAgentRayCast : Agent
         var delta = previousBallToTargetDist - currentBallToTargetDist;
         previousBallToTargetDist = currentBallToTargetDist;
 
-        if (delta > 0.05f)
-        {
-            // Only reward meaningful progress toward the target
-            AddReward(0.02f * delta);
-        }
-        else if (delta < -0.05f)
-        {
-            // Penalise moves that push the box further away
-            AddReward(-0.02f * -delta);
-        }
-        else
-        {
-            // Slight penalty for stagnation
-            AddReward(-0.001f);
-        }
+        if (delta > 0f)
+            AddReward(0.05f * delta); // reward for progress
 
         // Vector3 ballDir = (target.position - ball.position).normalized;
         // float alignment = Vector3.Dot(ballRb.linearVelocity.normalized, ballDir);
@@ -132,8 +118,7 @@ public class PushBallAgentRayCast : Agent
         // Only reward if approach AND alignment are both good
         if (agentApproach > 0.8f && pushAlignment > 0.6f)
         {
-            // Smaller reward for good approach and alignment
-            AddReward(0.02f);
+            AddReward(0.1f);
         }
 
         if (agentRb.angularVelocity.magnitude > 3f)
@@ -168,25 +153,19 @@ public class PushBallAgentRayCast : Agent
 
         if (agentRb.angularVelocity.magnitude < 1f)
             agentRb.AddTorque(Vector3.up * rotate * torqueMultiplier);
-
-        // Encourage movement by penalising near-zero speed
-        if (agentRb.velocity.magnitude < 0.1f)
-            AddReward(-0.001f);
     }
 
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("Ball"))
         {
-            // Very small reward for contacting the box
-            AddReward(0.05f);
+            AddReward(0.3f);
 
             var ballToTarget = (target.position - ball.position).normalized;
             var ballVelocity = ballRb.linearVelocity.normalized;
             var alignment = Vector3.Dot(ballVelocity, ballToTarget);
 
-            // Reduced reward for pushing in the correct direction
-            if (alignment > 0.7f) AddReward(0.2f * alignment);
+            if (alignment > 0.7f) AddReward(0.5f * alignment);
         }
     }
 
