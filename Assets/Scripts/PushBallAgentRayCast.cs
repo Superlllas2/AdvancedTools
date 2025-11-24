@@ -50,9 +50,9 @@ public class PushBallAgentRayCast : Agent
     {
         ballInTargetZone = false;
 
-        agentRb.linearVelocity = Vector3.zero;
+        agentRb.velocity = Vector3.zero;
         agentRb.angularVelocity = Vector3.zero;
-        ballRb.linearVelocity = Vector3.zero;
+        ballRb.velocity = Vector3.zero;
         ballRb.angularVelocity = Vector3.zero;
 
         transform.position = RandomSpawnPoint();
@@ -65,7 +65,7 @@ public class PushBallAgentRayCast : Agent
 
     public override void CollectObservations(VectorSensor sensor)
     {
-        Debug.Log($"agentRb linear {agentRb.linearVelocity}");
+        Debug.Log($"agentRb linear {agentRb.velocity}");
         Debug.Log($"agentRb angular {agentRb.angularVelocity}");
         Debug.Log($"target is {(target == null ? "null" : "OK")}");
         Debug.Log("Ball is null?: " + ball);
@@ -78,7 +78,7 @@ public class PushBallAgentRayCast : Agent
         Debug.Log($"ballToTarget {ballToTarget}");
         sensor.AddObservation(ballToTarget.normalized);
 
-        sensor.AddObservation(agentRb.linearVelocity);
+        sensor.AddObservation(agentRb.velocity);
         sensor.AddObservation(agentRb.angularVelocity);
 
         sensor.AddObservation(target.position - transform.position); // optional
@@ -103,10 +103,10 @@ public class PushBallAgentRayCast : Agent
         var ballToTarget = (target.position - ball.position).normalized;
 
         // Is the agent moving *toward* the ball in the right direction to push it to the goal?
-        var agentApproach = Vector3.Dot(agentRb.linearVelocity.normalized, agentToBall);
+        var agentApproach = Vector3.Dot(agentRb.velocity.normalized, agentToBall);
         var pushAlignment = Vector3.Dot(agentToBall, ballToTarget);
         
-        if (Physics.Raycast(transform.position, agentRb.linearVelocity.normalized, out RaycastHit hit, 0.6f))
+        if (Physics.Raycast(transform.position, agentRb.velocity.normalized, out RaycastHit hit, 0.6f))
         {
             if (hit.collider.CompareTag("Wall"))
             {
@@ -135,9 +135,9 @@ public class PushBallAgentRayCast : Agent
         }
         
         // Check if the agent is looking at the wall
-        if (ballRb.linearVelocity.magnitude > 0.01f && ballRb.linearVelocity.magnitude < 0.1f)
+        if (ballRb.velocity.magnitude > 0.01f && ballRb.velocity.magnitude < 0.1f)
         {
-            if (Physics.Raycast(ball.position, ballRb.linearVelocity.normalized, out var wallHit, 0.3f) &&
+            if (Physics.Raycast(ball.position, ballRb.velocity.normalized, out var wallHit, 0.3f) &&
                 wallHit.collider.CompareTag("Wall"))
             {
                 Debug.Log("Hits the wall - stuck");
@@ -162,7 +162,7 @@ public class PushBallAgentRayCast : Agent
             AddReward(0.3f);
 
             var ballToTarget = (target.position - ball.position).normalized;
-            var ballVelocity = ballRb.linearVelocity.normalized;
+            var ballVelocity = ballRb.velocity.normalized;
             var alignment = Vector3.Dot(ballVelocity, ballToTarget);
 
             if (alignment > 0.7f) AddReward(0.5f * alignment);
