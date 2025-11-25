@@ -1,0 +1,4 @@
+﻿behaviors:
+  PushBall:
+    trainer_type: ppo
+    hyperparameters:
