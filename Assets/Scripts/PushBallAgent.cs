@@ -28,17 +28,18 @@ public class PushBallAgent : Agent
         ballRb = ball.GetComponent<Rigidbody>();
         cornerDetector = ball.GetComponent<BoxCornerDetector>();
         
-        var parent = transform.parent;
-        if (parent)
-        {
-            var areaTransform = parent.Find("SpawnArea");
-            if (areaTransform) spawnArea = areaTransform.GetComponent<BoxCollider>();
-        }
-
-        if (!spawnArea)
-        {
-            Debug.LogError("SpawnArea not found as sibling in environment: " + gameObject.name);
-        }
+        // RANDOM SPAWN
+        // var parent = transform.parent;
+        // if (parent)
+        // {
+        //     var areaTransform = parent.Find("SpawnArea");
+        //     if (areaTransform) spawnArea = areaTransform.GetComponent<BoxCollider>();
+        // }
+        //
+        // if (!spawnArea)
+        // {
+        //     Debug.LogError("SpawnArea not found as sibling in environment: " + gameObject.name);
+        // }
 
         startAgentPos = transform.position;
         startBallPos = ball.position;
@@ -55,12 +56,17 @@ public class PushBallAgent : Agent
         ballRb.velocity = Vector3.zero;
         ballRb.angularVelocity = Vector3.zero;
 
-        transform.position = RandomSpawnPoint();
-        ball.position = RandomSpawnPoint();
+        // RANDOM SPAWN 2
+        // transform.position = RandomSpawnPoint();
+        // ball.position = RandomSpawnPoint();
 
+        // DEFAULT SPAWN
+        transform.position = startAgentPos;
+        ball.position = startBallPos;
+        
         previousBallToTargetDist = Vector3.Distance(ball.position, target.position);
         SuccessTracker.totalEpisodes++;
-        cornerDetector.wallsTouching = 0;
+        if (cornerDetector) cornerDetector.wallsTouching = 0;
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -71,73 +77,75 @@ public class PushBallAgent : Agent
 
         Vector3 ballToTarget = target.position - ball.position;
         sensor.AddObservation(ballToTarget.normalized);
+        sensor.AddObservation(ballToTarget.magnitude);
 
         sensor.AddObservation(agentRb.velocity);
         sensor.AddObservation(agentRb.angularVelocity);
 
-        sensor.AddObservation(target.position - transform.position);
+        sensor.AddObservation(ballRb.velocity);
     }
 
     public override void OnActionReceived(ActionBuffers actions)
     {
-        var currentBallToTargetDist = Vector3.Distance(ball.position, target.position);
-        var delta = previousBallToTargetDist - currentBallToTargetDist;
-        previousBallToTargetDist = currentBallToTargetDist;
-
-        if (delta > 0f)
-            AddReward(0.05f * delta); // reward for progress
-
-        // Vector3 ballDir = (target.position - ball.position).normalized;
-        // float alignment = Vector3.Dot(ballRb.linearVelocity.normalized, ballDir);
+        // OLD REWARDING SYSTEM
+        // var currentBallToTargetDist = Vector3.Distance(ball.position, target.position);
+        // var delta = previousBallToTargetDist - currentBallToTargetDist;
+        // previousBallToTargetDist = currentBallToTargetDist;
         //
-        // if (alignment > 0.8f && ballRb.linearVelocity.magnitude > 0.2f)
-        //     AddReward(0.01f); // reward for good direction
-        
-        var agentToBall = (ball.position - transform.position).normalized;
-        var ballToTarget = (target.position - ball.position).normalized;
-
-        // Is the agent moving *toward* the ball in the right direction to push it to the goal?
-        var agentApproach = Vector3.Dot(agentRb.velocity.normalized, agentToBall);
-        var pushAlignment = Vector3.Dot(agentToBall, ballToTarget);
-        
-        if (Physics.Raycast(transform.position, agentRb.velocity.normalized, out RaycastHit hit, 0.6f))
-        {
-            if (hit.collider.CompareTag("Wall"))
-            {
-                //Debug.Log(hit.collider.name);
-                AddReward(-0.02f);
-            }
-        }
-
-        // Reward if approach AND alignment are both good
-        if (agentApproach > 0.8f && pushAlignment > 0.6f)
-        {
-            AddReward(0.1f);
-        }
-
-        if (agentRb.angularVelocity.magnitude > 3f)
-            AddReward(-0.1f); // penalize spinning
-        
-        // Penalty for making box stuck in the corner
-        if (cornerDetector)
-        {
-            if (cornerDetector.wallsTouching >= 2)
-            {
-                //Debug.Log("Box stucked in the corner");
-                NotifyBallFailed(-3);
-            }
-        }
-        
-        // Check if the agent is looking at the wall
-        if (ballRb.velocity.magnitude > 0.01f && ballRb.velocity.magnitude < 0.1f)
-        {
-            if (Physics.Raycast(ball.position, ballRb.velocity.normalized, out var wallHit, 0.3f) &&
-                wallHit.collider.CompareTag("Wall"))
-            {
-                //Debug.Log("Hits the wall - stuck");
-                AddReward(-0.01f);
-            }
-        }
+        // if (delta > 0f)
+        //     AddReward(0.05f * delta); // reward for progress
+        //
+        // // Vector3 ballDir = (target.position - ball.position).normalized;
+        // // float alignment = Vector3.Dot(ballRb.linearVelocity.normalized, ballDir);
+        // //
+        // // if (alignment > 0.8f && ballRb.linearVelocity.magnitude > 0.2f)
+        // //     AddReward(0.01f); // reward for good direction
+        //
+        // var agentToBall = (ball.position - transform.position).normalized;
+        // var ballToTarget = (target.position - ball.position).normalized;
+        //
+        // // Is the agent moving *toward* the ball in the right direction to push it to the goal?
+        // var agentApproach = Vector3.Dot(agentRb.velocity.normalized, agentToBall);
+        // var pushAlignment = Vector3.Dot(agentToBall, ballToTarget);
+        //
+        // if (Physics.Raycast(transform.position, agentRb.velocity.normalized, out RaycastHit hit, 0.6f))
+        // {
+        //     if (hit.collider.CompareTag("Wall"))
+        //     {
+        //         //Debug.Log(hit.collider.name);
+        //         AddReward(-0.02f);
+        //     }
+        // }
+        //
+        // // Reward if approach AND alignment are both good
+        // if (agentApproach > 0.8f && pushAlignment > 0.6f)
+        // {
+        //     AddReward(0.1f);
+        // }
+        //
+        // if (agentRb.angularVelocity.magnitude > 3f)
+        //     AddReward(-0.1f); // penalize spinning
+        //
+        // // Penalty for making box stuck in the corner
+        // if (cornerDetector)
+        // {
+        //     if (cornerDetector.wallsTouching >= 2)
+        //     {
+        //         //Debug.Log("Box stucked in the corner");
+        //         NotifyBallFailed(-3);
+        //     }
+        // }
+        //
+        // // Check if the agent is looking at the wall
+        // if (ballRb.velocity.magnitude > 0.01f && ballRb.velocity.magnitude < 0.1f)
+        // {
+        //     if (Physics.Raycast(ball.position, ballRb.velocity.normalized, out var wallHit, 0.3f) &&
+        //         wallHit.collider.CompareTag("Wall"))
+        //     {
+        //         //Debug.Log("Hits the wall - stuck");
+        //         AddReward(-0.01f);
+        //     }
+        // }
         
 
         var move = new Vector3(actions.ContinuousActions[0], 0, actions.ContinuousActions[1]);
@@ -147,19 +155,37 @@ public class PushBallAgent : Agent
 
         if (agentRb.angularVelocity.magnitude < 1f)
             agentRb.AddTorque(Vector3.up * rotate * torqueMultiplier);
+        
+        // Reward ball progress toward the goal
+        var currentBallToTargetDist = Vector3.Distance(ball.position, target.position);
+        var delta = previousBallToTargetDist - currentBallToTargetDist;
+        previousBallToTargetDist = currentBallToTargetDist;
+        if (delta > 0f) AddReward(0.1f * delta);
+
+        // Step penalty
+        AddReward(-0.001f);
+
+        // If the box is stuck in a corner, end early with a light penalty.
+        if (cornerDetector && cornerDetector.wallsTouching >= 2)
+        {
+            NotifyBallFailed(-1f);
+        }
     }
 
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("Ball"))
         {
-            AddReward(0.3f);
-
-            var ballToTarget = (target.position - ball.position).normalized;
-            var ballVelocity = ballRb.velocity.normalized;
-            var alignment = Vector3.Dot(ballVelocity, ballToTarget);
-
-            if (alignment > 0.7f) AddReward(0.5f * alignment);
+            // NOISY REWARDS
+            // AddReward(0.3f);
+            //
+            // var ballToTarget = (target.position - ball.position).normalized;
+            // var ballVelocity = ballRb.velocity.normalized;
+            // var alignment = Vector3.Dot(ballVelocity, ballToTarget);
+            //
+            // if (alignment > 0.7f) AddReward(0.5f * alignment);
+            
+            AddReward(0.2f);
         }
     }
 
@@ -167,7 +193,7 @@ public class PushBallAgent : Agent
     {
         ballInTargetZone = true;
         SuccessTracker.successfulEpisodes++;
-        AddReward(2f);
+        AddReward(3f);
         EndEpisode();
         Debug.Log($"Success Rate: {(float)SuccessTracker.successfulEpisodes / SuccessTracker.totalEpisodes:P}");
     }

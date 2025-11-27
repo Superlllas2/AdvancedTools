@@ -503,10 +503,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: Learning env
       objectReference: {fileID: 0}
-    - target: {fileID: 3715332575255088068, guid: b3d3df69de2254959be7191289a6aaf3, type: 3}
-      propertyPath: m_Mass
-      value: 0.1
-      objectReference: {fileID: 0}
     - target: {fileID: 4702422693552926750, guid: b3d3df69de2254959be7191289a6aaf3, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
