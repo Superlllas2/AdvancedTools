@@ -75,7 +75,7 @@ public class PushBallAgent : Agent
         sensor.AddObservation(agentRb.velocity);
         sensor.AddObservation(agentRb.angularVelocity);
 
-        sensor.AddObservation(target.position - transform.position); // optional
+        sensor.AddObservation(target.position - transform.position);
     }
 
     public override void OnActionReceived(ActionBuffers actions)
@@ -104,12 +104,12 @@ public class PushBallAgent : Agent
         {
             if (hit.collider.CompareTag("Wall"))
             {
-                Debug.Log(hit.collider.name);
-                AddReward(-0.02f); // nudging into wall? stop.
+                //Debug.Log(hit.collider.name);
+                AddReward(-0.02f);
             }
         }
 
-        // Only reward if approach AND alignment are both good
+        // Reward if approach AND alignment are both good
         if (agentApproach > 0.8f && pushAlignment > 0.6f)
         {
             AddReward(0.1f);
@@ -123,7 +123,7 @@ public class PushBallAgent : Agent
         {
             if (cornerDetector.wallsTouching >= 2)
             {
-                Debug.Log("Box stucked in the corner");
+                //Debug.Log("Box stucked in the corner");
                 NotifyBallFailed(-3);
             }
         }
@@ -134,7 +134,7 @@ public class PushBallAgent : Agent
             if (Physics.Raycast(ball.position, ballRb.velocity.normalized, out var wallHit, 0.3f) &&
                 wallHit.collider.CompareTag("Wall"))
             {
-                Debug.Log("Hits the wall - stuck");
+                //Debug.Log("Hits the wall - stuck");
                 AddReward(-0.01f);
             }
         }

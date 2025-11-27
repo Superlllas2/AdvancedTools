@@ -10,7 +10,7 @@ public class Box : MonoBehaviour
     {
         if (other.CompareTag("TargetZone"))
         {
-            Debug.Log("Ball entered TargetZone");
+            //Debug.Log("Ball entered TargetZone");
             OnBoxReachedGoal?.Invoke();
             agent.NotifyBallEnteredGoal();
         }
