@@ -68,7 +68,7 @@ public class PushBallAgent : Agent
         
         previousBallToTargetDist = Vector3.Distance(ball.position, target.position);
         // SuccessTracker.totalEpisodes++;
-        cornerDetector.wallsTouching = 0;
+        if (cornerDetector) cornerDetector.wallsTouching = 0;
     }
 
     public override void CollectObservations(VectorSensor sensor)
