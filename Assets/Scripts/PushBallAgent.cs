@@ -22,6 +22,8 @@ public class PushBallAgent : Agent
     public float torqueMultiplier = 1f;
     public float forceMultiplier = 10f;
 
+    public static SuccessWindow Recent = new (1000);
+
     public override void Initialize()
     {
         agentRb = GetComponent<Rigidbody>();
@@ -65,8 +67,8 @@ public class PushBallAgent : Agent
         ball.position = startBallPos;
         
         previousBallToTargetDist = Vector3.Distance(ball.position, target.position);
-        SuccessTracker.totalEpisodes++;
-        if (cornerDetector) cornerDetector.wallsTouching = 0;
+        // SuccessTracker.totalEpisodes++;
+        cornerDetector.wallsTouching = 0;
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -192,14 +194,17 @@ public class PushBallAgent : Agent
     public void NotifyBallEnteredGoal()
     {
         ballInTargetZone = true;
-        SuccessTracker.successfulEpisodes++;
+        // SuccessTracker.successfulEpisodes++;
+        Recent.Add(1);
         AddReward(3f);
         EndEpisode();
-        Debug.Log($"Success Rate: {(float)SuccessTracker.successfulEpisodes / SuccessTracker.totalEpisodes:P}");
+        // Debug.Log($"Success Rate: {(float)SuccessTracker.successfulEpisodes / SuccessTracker.totalEpisodes:P}");
+        if (Recent.IsFull) Debug.Log("Window success rate: " + Recent.GetRate());
     }
 
     private void NotifyBallFailed(float penalty)
     {
+        Recent.Add(0);
         AddReward(penalty);
         EndEpisode();
     }
