@@ -72,7 +72,6 @@ public class PushBallAgent : Agent
         ball.rotation = startBallRot;
         
         previousBallToTargetDist = Vector3.Distance(ball.position, target.position);
-        SuccessTracker.totalEpisodes++;
         if (cornerDetector) cornerDetector.wallsTouching = 0;
     }
 
@@ -199,11 +198,12 @@ public class PushBallAgent : Agent
     public void NotifyBallEnteredGoal()
     {
         ballInTargetZone = true;
-        // SuccessTracker.successfulEpisodes++;
+        // SuccessTracker.RecordEpisodeResult(true);
         Recent.Add(1);
         AddReward(3f);
+        SuccessTracker.RecordEpisodeResult(true);
         EndEpisode();
-        // Debug.Log($"Success Rate: {(float)SuccessTracker.successfulEpisodes / SuccessTracker.totalEpisodes:P}");
+        // Debug.Log($"Success Rate: {SuccessTracker.GlobalSuccessRate:P}");
         if (Recent.IsFull)
         {
             var rate = Recent.GetRate();
@@ -217,6 +217,7 @@ public class PushBallAgent : Agent
     {
         Recent.Add(0);
         AddReward(penalty);
+        SuccessTracker.RecordEpisodeResult(false);
         EndEpisode();
     }
 
@@ -228,6 +229,7 @@ public class PushBallAgent : Agent
             AddReward(-Mathf.Clamp01(dist / 1.5f));
             AddReward(-1f);
         }
+        SuccessTracker.RecordEpisodeResult(ballInTargetZone);
         EndEpisode();
     }
     

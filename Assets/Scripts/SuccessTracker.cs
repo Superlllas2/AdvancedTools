@@ -1,15 +1,20 @@
 public static class SuccessTracker
 {
-    public static int totalEpisodes = 0;
-    public static int successfulEpisodes = 0;
-
     private static readonly SuccessWindow Last1000 = new SuccessWindow(1000);
 
-    public static void RegisterSuccess() => Last1000.Add(1);
-    public static void AddEpisodes() => successfulEpisodes++;
+    public static int TotalEpisodes { get; private set; } = 0;
+    public static int SuccessfulEpisodes { get; private set; } = 0;
+
+    public static void RecordEpisodeResult(bool succeeded)
+    {
+        TotalEpisodes++;
+        if (succeeded) SuccessfulEpisodes++;
+
+        Last1000.Add(succeeded ? 1 : 0);
+    }
 
     public static float GlobalSuccessRate =>
-        totalEpisodes == 0 ? 0f : (float)successfulEpisodes / totalEpisodes * 100f;
+        TotalEpisodes == 0 ? 0f : (float)SuccessfulEpisodes / TotalEpisodes * 100f;
 
-    public static float RecentSuccessRate => Last1000.GetRate();
+    public static float RecentSuccessRate => Last1000.Length == 0 ? 0f : Last1000.GetRate();
 }

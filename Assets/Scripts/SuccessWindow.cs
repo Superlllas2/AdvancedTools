@@ -20,6 +20,8 @@ public class SuccessWindow
 
     public float GetRate()
     {
+        if (count == 0) return 0f;
+
         int sum = 0;
         for (int i = 0; i < count; i++)
             sum += buffer[i];
