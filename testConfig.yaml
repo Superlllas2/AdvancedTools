@@ -26,8 +26,7 @@ env_settings:
   num_envs: 1
   seed: -1
   base_port: 5005
-  timeout_wait: 120
 
 torch_settings:
-  device: cuda
+  device: cpu
   threads: 16

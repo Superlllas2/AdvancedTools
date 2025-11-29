@@ -204,7 +204,13 @@ public class PushBallAgent : Agent
         AddReward(3f);
         EndEpisode();
         // Debug.Log($"Success Rate: {(float)SuccessTracker.successfulEpisodes / SuccessTracker.totalEpisodes:P}");
-        if (Recent.IsFull) Debug.Log("Window success rate: " + Recent.GetRate());
+        if (Recent.IsFull)
+        {
+            var rate = Recent.GetRate();
+            Academy.Instance.StatsRecorder.Add("PushBall/SuccessRate", rate);
+            Debug.Log("Window success rate: " + rate);
+        }
+        
     }
 
     private void NotifyBallFailed(float penalty)

@@ -24,8 +24,9 @@ public class SuccessWindow
         for (int i = 0; i < count; i++)
             sum += buffer[i];
 
-        return (float)sum / count;
+        return (float)sum / count * 100;
     }
 
     public bool IsFull => count == size;
+    public int Length => count;
 }
