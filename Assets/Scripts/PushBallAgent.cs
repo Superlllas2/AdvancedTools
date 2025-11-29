@@ -72,7 +72,7 @@ public class PushBallAgent : Agent
         ball.rotation = startBallRot;
         
         previousBallToTargetDist = Vector3.Distance(ball.position, target.position);
-        // SuccessTracker.totalEpisodes++;
+        SuccessTracker.totalEpisodes++;
         if (cornerDetector) cornerDetector.wallsTouching = 0;
     }
 
