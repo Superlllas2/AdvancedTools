@@ -13,6 +13,8 @@ public class PushBallAgent : Agent
 
     private Vector3 startAgentPos;
     private Vector3 startBallPos;
+    private Quaternion startBallRot;
+    private Quaternion startAgentRot;
 
     private float previousBallToTargetDist;
     private bool ballInTargetZone = false;
@@ -22,7 +24,7 @@ public class PushBallAgent : Agent
     public float torqueMultiplier = 1f;
     public float forceMultiplier = 10f;
 
-    public static SuccessWindow Recent = new (1000);
+    private static SuccessWindow Recent = new (100);
 
     public override void Initialize()
     {
@@ -64,7 +66,10 @@ public class PushBallAgent : Agent
 
         // DEFAULT SPAWN
         transform.position = startAgentPos;
+        transform.rotation = startAgentRot;
+        
         ball.position = startBallPos;
+        ball.rotation = startBallRot;
         
         previousBallToTargetDist = Vector3.Distance(ball.position, target.position);
         // SuccessTracker.totalEpisodes++;

@@ -5,6 +5,8 @@ public class Box : MonoBehaviour
 {
     public PushBallAgent agent;
     public static event Action OnBoxReachedGoal;
+    
+    
 
     private void OnTriggerEnter(Collider other)
     {
