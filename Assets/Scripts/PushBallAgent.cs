@@ -171,12 +171,6 @@ public class PushBallAgent : Agent
 
         // Step penalty
         AddReward(-0.001f);
-
-        // If the box is stuck in a corner, end early with a light penalty.
-        if (cornerDetector && cornerDetector.wallsTouching >= 2)
-        {
-            NotifyBallFailed(-1f);
-        }
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -207,24 +201,6 @@ public class PushBallAgent : Agent
         var rate = SuccessTracker.GetRate();
         Academy.Instance.StatsRecorder.Add("PushBall/SuccessRate", rate);
         Debug.Log($"Success Rate: {rate:P2}");
-    }
-
-    private void NotifyBallFailed(float penalty)
-    {
-        AddReward(penalty);
-        EndEpisode();
-    }
-
-    public void EndManuallyWithPenalty()
-    {
-        if (!ballInTargetZone)
-        {
-            var dist = Vector3.Distance(ball.position, target.position);
-            AddReward(-Mathf.Clamp01(dist / 1.5f));
-            AddReward(-1f);
-        }
-
-        EndEpisode();
     }
 
     Vector3 RandomSpawnPoint()
