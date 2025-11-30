@@ -18,6 +18,7 @@ public class PushBallAgent : Agent
 
     private float previousBallToTargetDist;
     private bool ballInTargetZone = false;
+    private bool episodeHasStarted = false;
     private BoxCollider spawnArea;
     private BoxCornerDetector cornerDetector;
 
@@ -53,6 +54,15 @@ public class PushBallAgent : Agent
 
     public override void OnEpisodeBegin()
     {
+        if (episodeHasStarted && !ballInTargetZone)
+        {
+            SuccessTracker.Add(0);
+            var rate = SuccessTracker.GetRate();
+            Academy.Instance.StatsRecorder.Add("PushBall/SuccessRate", rate);
+            Debug.Log($"Success Rate: {rate:P2}");
+        }
+
+        episodeHasStarted = true;
         ballInTargetZone = false;
 
         agentRb.velocity = Vector3.zero;
@@ -72,7 +82,6 @@ public class PushBallAgent : Agent
         ball.rotation = startBallRot;
 
         previousBallToTargetDist = Vector3.Distance(ball.position, target.position);
-        SuccessTracker.Add(0);
         if (cornerDetector) cornerDetector.wallsTouching = 0;
     }
 
