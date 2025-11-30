@@ -59,7 +59,7 @@ public class PushBallAgentRayCast : Agent
         ball.position = RandomSpawnPoint();
 
         previousBallToTargetDist = Vector3.Distance(ball.position, target.position);
-        SuccessTracker.totalEpisodes++;
+        // SuccessTracker.totalEpisodes++;
         cornerDetector.wallsTouching = 0;
     }
 
@@ -172,10 +172,10 @@ public class PushBallAgentRayCast : Agent
     public void NotifyBallEnteredGoal()
     {
         ballInTargetZone = true;
-        SuccessTracker.successfulEpisodes++;
+        // SuccessTracker.successfulEpisodes++;
         AddReward(2f);
         EndEpisode();
-        Debug.Log($"Success Rate: {(float)SuccessTracker.successfulEpisodes / SuccessTracker.totalEpisodes:P}");
+        // Debug.Log($"Success Rate: {(float)SuccessTracker.successfulEpisodes / SuccessTracker.totalEpisodes:P}");
     }
 
     private void NotifyBallFailed(float penalty)

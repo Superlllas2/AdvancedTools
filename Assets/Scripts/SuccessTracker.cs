@@ -1,15 +1,37 @@
+using System.Collections.Generic;
+
 public static class SuccessTracker
 {
-    public static int totalEpisodes = 0;
-    public static int successfulEpisodes = 0;
+    private static int window = 2000;
+    private static int[] successes = new int[window];
+    
+    private static int index = 0;
+    private static bool filled = false;
 
-    private static readonly SuccessWindow Last1000 = new SuccessWindow(1000);
+    public static void Add(int value)
+    {
+        successes[index] = value;
+        index = (index + 1) % window;
+        if (index == 0) filled = true;
+    }
 
-    public static void RegisterSuccess() => Last1000.Add(1);
-    public static void AddEpisodes() => successfulEpisodes++;
+    public static float GetRate()
+    {
+        var count = filled ? window : index;
+        
+        if (count == 0) return 0f;
+        
+        var zeros = 0;
+        var ones = 0;
+        
+        for (var i = 0; i < count; i++)
+        {
+            if (successes[i] == 0) zeros++;
+            else if (successes[i] == 1) ones++;
+        }
 
-    public static float GlobalSuccessRate =>
-        totalEpisodes == 0 ? 0f : (float)successfulEpisodes / totalEpisodes * 100f;
+        if (zeros == 0) return 0f;
 
-    public static float RecentSuccessRate => Last1000.GetRate();
+        return (float)ones / zeros * 100f;
+    }
 }

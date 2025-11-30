@@ -24,14 +24,14 @@ public class PushBallAgent : Agent
     public float torqueMultiplier = 1f;
     public float forceMultiplier = 10f;
 
-    private static SuccessWindow Recent = new (100);
+    // private static SuccessWindow Recent = new (100);
 
     public override void Initialize()
     {
         agentRb = GetComponent<Rigidbody>();
         ballRb = ball.GetComponent<Rigidbody>();
         cornerDetector = ball.GetComponent<BoxCornerDetector>();
-        
+
         // RANDOM SPAWN
         // var parent = transform.parent;
         // if (parent)
@@ -67,12 +67,12 @@ public class PushBallAgent : Agent
         // DEFAULT SPAWN
         transform.position = startAgentPos;
         transform.rotation = startAgentRot;
-        
+
         ball.position = startBallPos;
         ball.rotation = startBallRot;
-        
+
         previousBallToTargetDist = Vector3.Distance(ball.position, target.position);
-        SuccessTracker.totalEpisodes++;
+        SuccessTracker.Add(0);
         if (cornerDetector) cornerDetector.wallsTouching = 0;
     }
 
@@ -153,7 +153,7 @@ public class PushBallAgent : Agent
         //         AddReward(-0.01f);
         //     }
         // }
-        
+
 
         var move = new Vector3(actions.ContinuousActions[0], 0, actions.ContinuousActions[1]);
         var rotate = actions.ContinuousActions[2];
@@ -162,7 +162,7 @@ public class PushBallAgent : Agent
 
         if (agentRb.angularVelocity.magnitude < 1f)
             agentRb.AddTorque(Vector3.up * rotate * torqueMultiplier);
-        
+
         // Reward ball progress toward the goal
         var currentBallToTargetDist = Vector3.Distance(ball.position, target.position);
         var delta = previousBallToTargetDist - currentBallToTargetDist;
@@ -191,7 +191,7 @@ public class PushBallAgent : Agent
             // var alignment = Vector3.Dot(ballVelocity, ballToTarget);
             //
             // if (alignment > 0.7f) AddReward(0.5f * alignment);
-            
+
             AddReward(0.2f);
         }
     }
@@ -200,22 +200,17 @@ public class PushBallAgent : Agent
     {
         ballInTargetZone = true;
         // SuccessTracker.successfulEpisodes++;
-        Recent.Add(1);
+        SuccessTracker.Add(1);
         AddReward(3f);
         EndEpisode();
         // Debug.Log($"Success Rate: {(float)SuccessTracker.successfulEpisodes / SuccessTracker.totalEpisodes:P}");
-        if (Recent.IsFull)
-        {
-            var rate = Recent.GetRate();
-            Academy.Instance.StatsRecorder.Add("PushBall/SuccessRate", rate);
-            Debug.Log("Window success rate: " + rate);
-        }
-        
+        var rate = SuccessTracker.GetRate();
+        Academy.Instance.StatsRecorder.Add("PushBall/SuccessRate", rate);
+        Debug.Log($"Success Rate: {rate:P2}");
     }
 
     private void NotifyBallFailed(float penalty)
     {
-        Recent.Add(0);
         AddReward(penalty);
         EndEpisode();
     }
@@ -228,9 +223,10 @@ public class PushBallAgent : Agent
             AddReward(-Mathf.Clamp01(dist / 1.5f));
             AddReward(-1f);
         }
+
         EndEpisode();
     }
-    
+
     Vector3 RandomSpawnPoint()
     {
         var bounds = spawnArea.bounds;
