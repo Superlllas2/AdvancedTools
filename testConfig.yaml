@@ -28,5 +28,5 @@ env_settings:
   base_port: 5005
 
 torch_settings:
-  device: cuda
+  device: cpu
   threads: 16
