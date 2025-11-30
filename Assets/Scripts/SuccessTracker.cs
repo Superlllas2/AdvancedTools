@@ -32,6 +32,6 @@ public static class SuccessTracker
 
         if (zeros == 0) return 0f;
 
-        return (float)ones / zeros * 100f;
+        return (float)ones / zeros;
     }
 }
