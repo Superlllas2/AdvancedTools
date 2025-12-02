@@ -4,7 +4,7 @@ using UnityEngine;
 public class Box : MonoBehaviour
 {
     public PushBallAgent agent;
-    public static event Action OnBoxReachedGoal;
+    public static event Action<Collider> OnBoxReachedGoal;
     
     
 
@@ -13,7 +13,7 @@ public class Box : MonoBehaviour
         if (other.CompareTag("TargetZone"))
         {
             //Debug.Log("Ball entered TargetZone");
-            OnBoxReachedGoal?.Invoke();
+            OnBoxReachedGoal?.Invoke(other);
             agent.NotifyBallEnteredGoal();
         }
     }

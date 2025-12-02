@@ -7,13 +7,15 @@ public class ColourChange : MonoBehaviour
     public Material defMat;
 
     private Renderer rend;
+    private Collider targetCollider;
 
     private void Awake()
     {
         rend = GetComponent<Renderer>();
         defMat = rend.material;
+        targetCollider = GetComponent<Collider>();
     }
-    
+
     private void OnEnable()
     {
         Box.OnBoxReachedGoal += ChangeMaterialTemporary;
@@ -24,8 +26,13 @@ public class ColourChange : MonoBehaviour
         Box.OnBoxReachedGoal -= ChangeMaterialTemporary;
     }
 
-    private void ChangeMaterialTemporary()
+    private void ChangeMaterialTemporary(Collider target)
     {
+        if (target != targetCollider)
+        {
+            return;
+        }
+
         StopAllCoroutines(); // In case it's already running
         StartCoroutine(ChangeRoutine());
     }
